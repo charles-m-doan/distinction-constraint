@@ -20,7 +20,7 @@ If no distinction can be drawn, even in principle, then no predicate applies, no
 
 The slogan *“Where nothing differs, nothing is”* should be read with this constitutive force in mind. It does not assert a metaphysical dependence of being on difference, nor does it describe a causal or generative relation. It is a concise way of marking that once all distinction is removed, **ontological vocabulary loses its application altogether**.
 
-Accordingly, the Foundations deny the coherence of **fundamental ontology**. Ontology cannot be foundational, because any ontology already presupposes distinctions that make its claims intelligible. Appeals to substrates, ultimate grounds, or “being itself” are not rejected as false relative to a deeper theory; they are ruled out as unintelligible, because the contrasts required for their articulation have been removed.
+Accordingly, the Foundation denies the coherence of **fundamental ontology**. Ontology cannot be foundational, because any ontology already presupposes distinctions that make its claims intelligible. Appeals to substrates, ultimate grounds, or “being itself” are not rejected as false relative to a deeper theory; they are ruled out as unintelligible, because the contrasts required for their articulation have been removed.
 
 These constraints apply without exception, including to the framework itself. There is no privileged meta-level exempt from the requirement of intelligibility through distinction. At this level, “reality” is fixed as the exhaustion of what can count as something at all under admissible distinction.
 
