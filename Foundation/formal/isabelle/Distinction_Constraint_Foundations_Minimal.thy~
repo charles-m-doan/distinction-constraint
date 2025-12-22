@@ -1,0 +1,267 @@
+theory Distinction_Constraint_Foundations_Minimal
+  imports Main
+begin
+
+(*
+  Distinction Constraint (DC) — Minimal Foundations (F*)
+  -----------------------------------------------------
+
+  Purpose of this file:
+  - NOT to prove the truth/correctness of the Foundations premises.
+  - YES to show how the *Foundations-only* conclusions follow once the premises are fixed,
+    in a form that can be extended into a fuller development.
+
+  Strategy:
+  - Introduce a small collection of uninterpreted types and predicates.
+  - Axiomatize the minimal F* steps as assumptions inside a locale.
+  - Derive a handful of lemmas that correspond to the eliminative consequences
+    (unintelligibility/unassertability), strictly at the Foundations level.
+
+  Notes for later refinement:
+  - Many of these symbols can be replaced with richer encodings:
+      * Claim could be a set of propositions with a semantics.
+      * Meaningful could be a well-formedness / determinacy predicate.
+      * HasAppCond could be a relation to an explicit "conditions" object.
+  - For now, we keep them schematic to isolate inferential structure.
+*)
+
+(*
+  === Uninterpreted primitives (schematic) ===
+
+  We use abstract types for:
+  - 'a claim    : syntactic/semantic items that purport to say something.
+  - 'b obj      : things we may try to predicate about.
+  - 'c pred     : predicates that may or may not apply to objects.
+
+  This avoids committing to any particular representation.
+*)
+typedecl claim
+typedecl obj
+typedecl pred
+
+
+(*
+  === Locale: Minimal Foundations ===
+
+  The five minimal Foundations steps are imposed as assumptions in a locale.
+  This makes it easy to:
+    - reuse the axioms in later theories,
+    - prove derived lemmas inside the context,
+    - interpret the locale with concrete models if desired.
+*)
+locale DC_Foundations_Minimal =
+  fixes
+    (* Core notions *)
+    Claim        :: "claim ⇒ bool"          (* "φ counts as a claim" (claimhood) *)
+    Distinction  :: "claim ⇒ bool"          (* "φ draws/uses a distinction"      *)
+
+    Meaningful   :: "claim ⇒ bool"          (* "φ is determinate / has content"  *)
+
+    Applies      :: "pred ⇒ obj ⇒ claim"    (* predication-as-a-claim: P applies to x *)
+    HasAppCond   :: "pred ⇒ obj ⇒ bool"     (* P has conditions of application to x *)
+
+    PriorToAllDist :: "obj ⇒ bool"          (* x is described as prior/outside all distinction *)
+
+    (* "Exists" is treated as just another predicate symbol at Foundations level *)
+    Exists       :: pred
+  assumes
+
+    (*
+      F*1 — Claimhood Requires Distinction
+      -----------------------------------
+      To make any claim at all is to draw a distinction.
+    *)
+    F1_Claim_requires_distinction:
+      "Claim φ ⟹ Distinction φ"
+
+    (*
+      (Bridging convention)
+      ---------------------
+      You can choose to identify "Meaningful" with "Claim" or keep them distinct.
+      Here we relate them minimally: meaningfulness implies claimhood.
+      This lets us derive "Meaningful ⇒ Distinction" via F*1.
+      (This is not an additional DC thesis; it is a bookkeeping bridge.)
+    *)
+    Meaningful_implies_Claim:
+      "Meaningful φ ⟹ Claim φ"
+
+    (*
+      F*2 — Predication Requires Conditions of Application
+      ----------------------------------------------------
+      Any meaningful predication has application conditions.
+      (We treat "Applies P x" as a claim-form.)
+    *)
+    F2_Predication_requires_app_conditions:
+      "Meaningful (Applies P x) ⟹ HasAppCond P x"
+
+    (*
+      F*3 — Nothing Prior to All Distinction Can Be Anything
+      ------------------------------------------------------
+      If x is described as prior/outside all distinction, then no predicate has
+      application conditions for x.
+    *)
+    F3_PriorToAllDist_has_no_app_conditions:
+      "PriorToAllDist x ⟹ (∀P. ¬ HasAppCond P x)"
+
+    (*
+      F*4 — No Exception / No Privileged Meta-level
+      ---------------------------------------------
+      In Isabelle, the best way to enforce "no exception" is to:
+        - not introduce a special meta-type that evades these predicates, and
+        - quantify universally in the axioms.
+      This file already does that: all axioms quantify over *all* φ, P, x.
+      Hence we do not add a separate axiom here.
+
+      If you later introduce typed meta-claims, you must re-check closure.
+    *)
+
+    (*
+      F*5 — “Reality” Is Fixed as the Exhaustion of the Admissible
+      ------------------------------------------------------------
+      We implement "Reality" as a *definition* below:
+        Real x  ≡  ∃P. Meaningful (Applies P x)
+
+      Optionally, you can treat this as definitional only (recommended).
+    *)
+begin
+
+(*
+  === Definitions implementing F*5 ===
+*)
+
+definition Real :: "obj ⇒ bool" where
+  (* F*5: "Real x" means: some predicate meaningfully applies to x. *)
+  "Real x ⟷ (∃P. Meaningful (Applies P x))"
+
+
+(*
+  === Derived lemmas (Foundations-only consequences) ===
+  These are not additional premises; they are what follows once F*1–F*5 are fixed.
+*)
+
+(*
+  Lemma L1: Meaningful claims are distinction-governed.
+  ----------------------------------------------------
+  This is a direct consequence of F*1 plus the bookkeeping bridge.
+*)
+lemma L1_Meaningful_implies_Distinction:
+  assumes "Meaningful φ"
+  shows   "Distinction φ"
+proof -
+  have "Claim φ" using assms Meaningful_implies_Claim by blast
+  thus "Distinction φ" using F1_Claim_requires_distinction by blast
+qed
+
+
+(*
+  Lemma L2: If x is prior to all distinction, then no meaningful predication applies.
+  ---------------------------------------------------------------------------------
+  This is the key "unassertable rather than false" mechanism:
+    If Meaningful(Applies P x) then HasAppCond P x (F*2),
+    but prior-to-dist implies no HasAppCond for any P (F*3).
+*)
+lemma L2_No_meaningful_predication_if_PriorToAllDist:
+  assumes "PriorToAllDist x"
+  shows   "¬ Meaningful (Applies P x)"
+proof
+  assume "Meaningful (Applies P x)"
+  hence "HasAppCond P x" using F2_Predication_requires_app_conditions by blast
+  moreover have "∀Q. ¬ HasAppCond Q x"
+    using assms F3_PriorToAllDist_has_no_app_conditions by blast
+  ultimately show False by blast
+qed
+
+
+(*
+  Corollary L2.1: Existence-predication is not meaningful for prior-to-dist objects.
+  --------------------------------------------------------------------------------
+  Treating Exists as just another predicate symbol, we get:
+    PriorToAllDist x ⟹ ¬Meaningful(Applies Exists x)
+*)
+lemma L2_1_No_meaningful_existence_if_PriorToAllDist:
+  assumes "PriorToAllDist x"
+  shows   "¬ Meaningful (Applies Exists x)"
+  using assms L2_No_meaningful_predication_if_PriorToAllDist by blast
+
+
+(*
+  Lemma L3: Prior-to-dist objects are not "Real" under the F*5 definition.
+  -----------------------------------------------------------------------
+  Since Real x is defined by existence of some meaningfully applicable predicate,
+  and L2 says no such predicate application is meaningful, we get ¬Real x.
+*)
+lemma L3_Not_Real_if_PriorToAllDist:
+  assumes "PriorToAllDist x"
+  shows   "¬ Real x"
+proof
+  assume "Real x"
+  then obtain P where "Meaningful (Applies P x)"
+    unfolding Real_def by blast
+  thus False using assms L2_No_meaningful_predication_if_PriorToAllDist by blast
+qed
+
+
+(*
+  Lemma L4: "No ontological remainder" as a closure schema (Foundations-only).
+  ----------------------------------------------------------------------------
+  This lemma states: if nothing meaningfully predicates of x, then x is not Real.
+  It is essentially the contrapositive of Real_def.
+
+  It helps express the "no remainder beyond admissible predication" closure style
+  without importing any structure/Implications-level content.
+*)
+lemma L4_No_reality_without_meaningful_predication:
+  assumes "∀P. ¬ Meaningful (Applies P x)"
+  shows   "¬ Real x"
+  using assms unfolding Real_def by blast
+
+
+(*
+  Lemma L5: Explicit "unintelligible rather than false" pattern.
+  --------------------------------------------------------------
+  If x is prior to all distinction, then any predication attempt fails at Meaningful.
+  This lemma is often what you will point to when explaining "ruled out as unassertable."
+*)
+lemma L5_PriorToAllDist_blocks_all_predication_attempts:
+  assumes "PriorToAllDist x"
+  shows   "∀P. ¬ Meaningful (Applies P x)"
+  using assms L2_No_meaningful_predication_if_PriorToAllDist by blast
+
+
+(*
+  Optional convenience lemma: "Reality is exhausted by admissible predication."
+  ----------------------------------------------------------------------------
+  This is just Real_def rewritten, but it reads like the Foundations statement.
+*)
+lemma L6_Reality_as_exhaustion_of_admissible:
+  shows "Real x ⟷ (∃P. Meaningful (Applies P x))"
+  unfolding Real_def by simp
+
+
+(*
+  End of locale.
+*)
+end
+
+
+(*
+  === How to use this file ===
+
+  1) You can now prove higher-level Foundations corollaries by adding
+     additional definitions (e.g., "FundamentalOntology x") and showing
+     they entail PriorToAllDist x, then applying L2/L3.
+
+  2) You can interpret the locale with a concrete model if you want to
+     show consistency relative to HOL (optional). Example pattern:
+
+     interpretation DC_Foundations_Minimal Claim Distinction Meaningful Applies HasAppCond PriorToAllDist Exists
+       apply unfold_locales
+       ...
+
+  3) When you move to Implications, do NOT add new primitives here.
+     Instead, create a new locale that extends this one with additional
+     (non-foundational) definitions and assumptions that are explicitly
+     tagged as Implications-level modeling choices.
+*)
+
+end
